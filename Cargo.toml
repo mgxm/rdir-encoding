@@ -1,0 +1,9 @@
+[package]
+name = "rdir-encoding"
+version = "0.1.0"
+authors = ["Marcio Giaxa <i@mgxm.me>"]
+
+[dependencies]
+num-traits = "0.2"
+num-integer = "0.1"
+itertools = "0.7"
