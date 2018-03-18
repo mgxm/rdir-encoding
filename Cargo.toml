@@ -2,6 +2,10 @@
 name = "rdir-encoding"
 version = "0.1.0"
 authors = ["Marcio Giaxa <i@mgxm.me>"]
+license = "Apache-2.0"
+repository = "https://github.com/mgxm/rdir-encoding/"
+description = "Run Lenght, Delta, Integer and Recursive Indexing encoding"
+readme = "README.md"
 
 [dependencies]
 num-traits = "0.2"
