@@ -7,3 +7,10 @@ authors = ["Marcio Giaxa <i@mgxm.me>"]
 num-traits = "0.2"
 num-integer = "0.1"
 itertools = "0.7"
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "benchmark"
+harness = false
