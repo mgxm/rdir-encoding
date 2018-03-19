@@ -5,14 +5,20 @@ extern crate num_traits;
 use std::fmt;
 use std::iter;
 use std::i16;
+use std::error;
+use std::io;
+use std::convert::From;
 
 use itertools::Itertools;
 use num_traits::{Float, NumCast, PrimInt};
+
+type Result<T> = std::result::Result<T, RdirError>;
 
 #[derive(Debug)]
 pub enum RdirError {
     Decode(String),
     Encode(String),
+    Io(io::Error),
 }
 
 impl fmt::Display for RdirError {
@@ -20,7 +26,24 @@ impl fmt::Display for RdirError {
         match *self {
             RdirError::Decode(ref err) => write!(f, "Decode error: {}", err),
             RdirError::Encode(ref err) => write!(f, "Encode error: {}", err),
+            RdirError::Io(ref err) => write!(f, "IO error: {}", err),
         }
+    }
+}
+
+impl error::Error for RdirError {
+    fn description(&self) -> &str {
+        match *self {
+            RdirError::Decode(_) => "Invalid input data",
+            RdirError::Encode(_) => "Invalid input data",
+            RdirError::Io(ref err) => err.description(),
+        }
+    }
+}
+
+impl From<io::Error> for RdirError {
+    fn from(error: io::Error) -> Self {
+        RdirError::Io(error)
     }
 }
 
@@ -47,14 +70,15 @@ impl fmt::Display for RdirError {
 pub struct RunLength;
 
 impl RunLength {
-    pub fn decode<T>(values: &[T]) -> Result<Vec<i32>, RdirError>
+    pub fn decode<T>(values: &[T]) -> Result<Vec<i32>>
     where
         T: num_integer::Integer + NumCast + PrimInt,
     {
         let mut res: Vec<i32> = Vec::new();
 
         if !values.len() % 2 == 0 {
-            return Err(RdirError::Decode("Run Length error".to_string()));
+            let err = "Run Length: input data should contain even values";
+            return Err(RdirError::Decode(err.to_string()));
         }
 
         for v in values.chunks(2) {
@@ -70,7 +94,7 @@ impl RunLength {
     }
 
     /// Encode any array of 'T' where `T ` can be any Integer.
-    pub fn encode<T>(values: &[T]) -> Result<Vec<i32>, RdirError>
+    pub fn encode<T>(values: &[T]) -> Result<Vec<i32>>
     where
         T: num_integer::Integer + NumCast + PrimInt,
     {
@@ -111,7 +135,7 @@ pub struct Delta;
 
 impl Delta {
     /// Decode given values
-    pub fn decode(values: &[i32]) -> Result<Vec<i32>, RdirError> {
+    pub fn decode(values: &[i32]) -> Result<Vec<i32>> {
         let mut buffer = Vec::with_capacity(values.len() as usize);
 
         // The first entry in the array is left as is
@@ -125,7 +149,7 @@ impl Delta {
     }
 
     /// Encode any array of 'T' where `T ` can be any Integer.
-    pub fn encode<T>(values: &[T]) -> Result<Vec<i32>, RdirError>
+    pub fn encode<T>(values: &[T]) -> Result<Vec<i32>>
     where
         T: num_integer::Integer + NumCast + PrimInt,
     {
@@ -175,7 +199,7 @@ pub struct IntegerEncoding;
 
 impl IntegerEncoding {
     /// Decode and return the decoded data
-    pub fn decode<T>(values: &[T], factor: i32) -> Result<Vec<f32>, RdirError>
+    pub fn decode<T>(values: &[T], factor: i32) -> Result<Vec<f32>>
     where
         T: num_integer::Integer + NumCast + PrimInt,
     {
@@ -190,7 +214,7 @@ impl IntegerEncoding {
     }
 
     /// Encode any array of 'T' where `T ` can be any Integer with an desired `factor`
-    pub fn encode<T>(values: &[T], factor: i32) -> Result<Vec<i32>, RdirError>
+    pub fn encode<T>(values: &[T], factor: i32) -> Result<Vec<i32>>
     where
         T: Float,
     {
@@ -239,7 +263,7 @@ pub struct RecursiveIndexing;
 
 impl RecursiveIndexing {
     /// Decode and return the decoded data
-    pub fn decode<T>(values: &[T]) -> Result<Vec<i32>, RdirError>
+    pub fn decode<T>(values: &[T]) -> Result<Vec<i32>>
     where
         T: num_integer::Integer + NumCast + PrimInt,
     {
@@ -264,7 +288,7 @@ impl RecursiveIndexing {
     }
 
     /// Encode values
-    pub fn encode(values: &[i32]) -> Result<Vec<i16>, RdirError> {
+    pub fn encode(values: &[i32]) -> Result<Vec<i16>> {
         let mut output: Vec<i16> = Vec::new();
 
         let max: i32 = NumCast::from(i16::MAX).unwrap();
@@ -301,6 +325,13 @@ mod tests {
 
         let decoded = RunLength::decode(&encoded).unwrap();
         assert_eq!(vec![1, 1, 1, 1, 2, 1, 1, 1, 1], decoded);
+    }
+
+    #[test]
+    #[should_panic]
+    fn it_fail_on_decode_run_lenght() {
+        let encoded = [1, 4, 2, 1, 1];
+        RunLength::decode(&encoded).unwrap();
     }
 
     #[test]
